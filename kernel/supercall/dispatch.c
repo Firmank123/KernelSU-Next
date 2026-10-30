@@ -1,4 +1,7 @@
 #include <linux/capability.h>
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs.h>
+#endif
 #include "compat/kernel_compat.h"
 #include <linux/kallsyms.h>
 #include <linux/cred.h>
@@ -137,6 +140,9 @@ static int do_report_event(void __user *arg)
 			} else {
 				pr_info("boot_complete triggered\n");
 				on_boot_completed();
+#ifdef CONFIG_KSU_SUSFS
+				susfs_start_sdcard_monitor_fn();
+#endif
 			}
 		}
 		break;

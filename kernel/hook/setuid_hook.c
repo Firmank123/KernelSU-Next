@@ -13,6 +13,12 @@
 #include <linux/types.h>
 #include <linux/uaccess.h>
 #include <linux/uidgid.h>
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs_def.h>
+#include <linux/workqueue.h>
+#include "selinux/selinux.h"
+extern struct work_struct susfs_extra_works;
+#endif
 
 #include "policy/app_profile.h"
 #include "policy/allowlist.h"
@@ -68,6 +74,15 @@ int ksu_handle_setresuid(uid_t old_uid, uid_t new_uid)
 		ksu_clear_task_tracepoint_flag_if_needed(current);
 #endif
     }
+
+#ifdef CONFIG_KSU_SUSFS
+    if (is_zygote(current_cred()) &&
+        ((is_appuid(new_uid) && ksu_uid_should_umount(new_uid)) ||
+         is_isolated_process(new_uid))) {
+        susfs_set_current_proc_umounted();
+        schedule_work(&susfs_extra_works);
+    }
+#endif
 
     // Handle kernel umount
     ksu_handle_umount(old_uid, new_uid);
